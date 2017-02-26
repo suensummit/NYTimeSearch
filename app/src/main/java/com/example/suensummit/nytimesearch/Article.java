@@ -4,13 +4,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by suensummit on 26/02/2017.
  */
 
-public class Article {
+public class Article implements Serializable {
 
     String webUrl;
     String headline;
@@ -51,7 +52,7 @@ public class Article {
 
         for (int x = 0; x < array.length(); x++) {
             try {
-                results.add(new Article(array.getJSONObject(x)))
+                results.add(new Article(array.getJSONObject(x)));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
