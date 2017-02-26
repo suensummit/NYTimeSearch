@@ -1,10 +1,12 @@
 package com.example.suensummit.nytimesearch.activities;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -12,6 +14,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import com.example.suensummit.nytimesearch.Article;
 import com.example.suensummit.nytimesearch.ArticleArrayAdapter;
@@ -48,25 +51,37 @@ public class SearchActivity extends AppCompatActivity {
 
     }
 
+    private Boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
+    }
+
     public void setupViews() {
-        etQuery = (EditText) findViewById(R.id.etQuery);
-        gvResults = (GridView) findViewById(R.id.gvResults);
-        btnSearch = (Button) findViewById(R.id.btnSearch);
-        articles = new ArrayList<>();
-        adapter = new ArticleArrayAdapter(this, articles);
-        gvResults.setAdapter(adapter);
 
-        // hook up listener fpr grid click
-        gvResults.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "Network disconnected.", Toast.LENGTH_LONG).show();
+        } else {
+            etQuery = (EditText) findViewById(R.id.etQuery);
+            gvResults = (GridView) findViewById(R.id.gvResults);
+            btnSearch = (Button) findViewById(R.id.btnSearch);
+            articles = new ArrayList<>();
+            adapter = new ArticleArrayAdapter(this, articles);
+            gvResults.setAdapter(adapter);
 
-                Intent i = new Intent(getApplicationContext(), ArticleActivity.class);
-                Article article = articles.get(position);
-                i.putExtra("article", article);
-                startActivity(i);
-            }
-        });
+            // hook up listener fpr grid click
+            gvResults.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    Intent i = new Intent(getApplicationContext(), ArticleActivity.class);
+                    Article article = articles.get(position);
+                    i.putExtra("article", article);
+                    startActivity(i);
+                }
+            });
+        }
     }
 
     @Override
@@ -94,7 +109,7 @@ public class SearchActivity extends AppCompatActivity {
     public void onArticleSearch(View view) {
         String query = etQuery.getText().toString();
 
-        // Toast.makeText(this, "Searching for " + query, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Searching for " + query, Toast.LENGTH_LONG).show();
         AsyncHttpClient client = new AsyncHttpClient();
         String API_KEY = "ff05a054b564490d96720a8b78904d5f";
         String URL = "https://api.nytimes.com/svc/search/v2/articlesearch.json";
@@ -107,14 +122,10 @@ public class SearchActivity extends AppCompatActivity {
         client.get(URL, params, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                Log.d("DEBUG", response.toString());
-
-                JSONArray articleResults = null;
-
+                JSONArray articleResults;
                 try {
                     articleResults = response.getJSONObject("response").getJSONArray("docs");
                     adapter.addAll(Article.fromJSONArray(articleResults));
-                    // Log.d("DEBUG", articles.toString());
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
